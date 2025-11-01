@@ -1,6 +1,4 @@
 // server.js
-require('dotenv').config(); // โหลด .env
-
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -12,49 +10,34 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================
-// ตรวจสอบ SUPABASE_KEY
+// Supabase config (ใส่ key ตรงนี้)
 // ==========================
-const supabaseUrl = 'https://mtcjhuwygjwxnthwxqsk.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY;
+const SUPABASE_URL = 'https://mtcjhuwygjwxnthwxqsk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10Y2podXd5Z2p3eG50aHd4cXNrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjAxNjYyNywiZXhwIjoyMDc3NTkyNjI3fQ.Qja_319s_RntTDCrYE4dTBfSBK6Ksbew2_CN_oy7uKw';
 
-if (!supabaseKey) {
-    console.error('❌ SUPABASE_KEY is missing. Please set it in your .env or environment variables.');
-    process.exit(1); // จบ process ทันที
-}
-
-// ==========================
-// สร้าง Supabase client
-// ==========================
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
 // JWT secret
 // ==========================
-const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey';
+const JWT_SECRET = 'mysecretkey';
 
 // ==========================
-// Root route
+// Routes
 // ==========================
-app.get('/', (req, res) => {
-    res.send('Backend is running ✅');
-});
 
-// ==========================
-// Register route
-// ==========================
+// Root
+app.get('/', (req, res) => res.send('Backend is running ✅'));
+
+// Register
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
 
     try {
         const hashed = bcrypt.hashSync(password, 8);
-
-        const { data, error } = await supabase
-            .from('users')
-            .insert([{ username, password: hashed }]);
-
+        const { data, error } = await supabase.from('users').insert([{ username, password: hashed }]);
         if (error) throw error;
-
         res.json({ message: 'User registered successfully', user: data[0] });
     } catch (err) {
         console.error(err);
@@ -62,20 +45,13 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// ==========================
-// Login route
-// ==========================
+// Login
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
 
     try {
-        const { data: users, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', username)
-            .limit(1);
-
+        const { data: users, error } = await supabase.from('users').select('*').eq('username', username).limit(1);
         if (error) throw error;
         if (!users || users.length === 0) return res.status(400).json({ error: 'User not found' });
 
@@ -84,7 +60,6 @@ app.post('/login', async (req, res) => {
         if (!valid) return res.status(401).json({ error: 'Invalid password' });
 
         const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-
         res.json({ message: 'Login success', token, user: { username: user.username } });
     } catch (err) {
         console.error(err);
@@ -92,13 +67,10 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// ==========================
 // Protected route
-// ==========================
 app.get('/protected', (req, res) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader?.split(' ')[1]; // Bearer <token>
-
+    const token = authHeader?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token provided' });
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
@@ -108,7 +80,7 @@ app.get('/protected', (req, res) => {
 });
 
 // ==========================
-// Start server
+// Start server (Render ใช้ process.env.PORT)
 // ==========================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
