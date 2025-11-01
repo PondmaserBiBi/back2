@@ -10,10 +10,10 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================
-// Supabase config
+// Supabase config (ใส่ service_role key ตรงนี้)
 // ==========================
 const SUPABASE_URL = 'https://mtcjhuwygjwxnthwxqsk.supabase.co';
-const SUPABASE_KEY = 'YOUR_SUPABASE_KEY'; // แนะนำใช้ environment variable
+const SUPABASE_KEY = 'PASTE_YOUR_SERVICE_ROLE_KEY_HERE'; // <-- ใส่ตรงนี้
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
@@ -31,16 +31,14 @@ app.get('/', (req, res) => res.send('Backend is running ✅'));
 // Register
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) 
-        return res.status(400).json({ error: 'Missing username or password' });
+    if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
 
     try {
         const hashed = bcrypt.hashSync(password, 8);
-
         const { data, error } = await supabase
             .from('users')
             .insert([{ username, password: hashed }])
-            .select(); // <- ใส่ select() เพื่อให้ data คืนค่า array ของ row
+            .select(); // return inserted row
 
         if (error) return res.status(500).json({ error: error.message });
         if (!data || data.length === 0) return res.status(500).json({ error: 'Insert failed' });
@@ -55,8 +53,7 @@ app.post('/register', async (req, res) => {
 // Login
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) 
-        return res.status(400).json({ error: 'Missing username or password' });
+    if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
 
     try {
         const { data: users, error } = await supabase
