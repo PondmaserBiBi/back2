@@ -12,8 +12,8 @@ app.use(express.json());
 // ==========================
 // Supabase config (ใส่ service_role key ตรงนี้)
 // ==========================
-const SUPABASE_URL = 'https://mtcjhuwygjwxnthwxqsk.supabase.co';
-const SUPABASE_KEY = 'PASTE_YOUR_SERVICE_ROLE_KEY_HERE'; // <-- ใส่ตรงนี้
+const SUPABASE_URL = 'https://bmcegstqekdxnnuvfrya.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtY2Vnc3RxZWtkeG5udXZmcnlhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjAyMzcxNSwiZXhwIjoyMDc3NTk5NzE1fQ._F_zi5IOM70D3ltOia_JfoHxNMxD9s6UedS_RvV4PRs'; // <-- ใส่ตรงนี้
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
