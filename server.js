@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================
-// Supabase config (ใส่ key ตรงนี้)
+// Supabase config
 // ==========================
 const SUPABASE_URL = 'https://mtcjhuwygjwxnthwxqsk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10Y2podXd5Z2p3eG50aHd4cXNrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjAxNjYyNywiZXhwIjoyMDc3NTkyNjI3fQ.Qja_319s_RntTDCrYE4dTBfSBK6Ksbew2_CN_oy7uKw';
@@ -37,7 +37,9 @@ app.post('/register', async (req, res) => {
     try {
         const hashed = bcrypt.hashSync(password, 8);
         const { data, error } = await supabase.from('users').insert([{ username, password: hashed }]);
-        if (error) throw error;
+        if (error) return res.status(500).json({ error: error.message });
+        if (!data || data.length === 0) return res.status(500).json({ error: 'Insert failed' });
+
         res.json({ message: 'User registered successfully', user: data[0] });
     } catch (err) {
         console.error(err);
@@ -51,8 +53,13 @@ app.post('/login', async (req, res) => {
     if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
 
     try {
-        const { data: users, error } = await supabase.from('users').select('*').eq('username', username).limit(1);
-        if (error) throw error;
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('username', username)
+            .limit(1);
+
+        if (error) return res.status(500).json({ error: error.message });
         if (!users || users.length === 0) return res.status(400).json({ error: 'User not found' });
 
         const user = users[0];
@@ -80,7 +87,7 @@ app.get('/protected', (req, res) => {
 });
 
 // ==========================
-// Start server (Render ใช้ process.env.PORT)
+// Start server
 // ==========================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
