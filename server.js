@@ -5,21 +5,23 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
+require('dotenv').config(); // ใช้ .env สำหรับเก็บ Supabase Key, URL และ JWT secret
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // ==========================
-// Supabase config (ใส่ service_role key ตรงนี้)
+// Supabase config
 // ==========================
-const SUPABASE_URL = 'https://bmcegstqekdxnnuvfrya.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtY2Vnc3RxZWtkeG5udXZmcnlhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjAyMzcxNSwiZXhwIjoyMDc3NTk5NzE1fQ._F_zi5IOM70D3ltOia_JfoHxNMxD9s6UedS_RvV4PRs'; // <-- ใส่ตรงนี้
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY; // service_role key
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
 // JWT secret
 // ==========================
-const JWT_SECRET = 'mysecretkey';
+const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey';
 
 // ==========================
 // Routes
@@ -30,63 +32,65 @@ app.get('/', (req, res) => res.send('Backend is running ✅'));
 
 // Register
 app.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
+  const { username, password } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ error: 'Missing username or password' });
 
-    try {
-        const hashed = bcrypt.hashSync(password, 8);
-        const { data, error } = await supabase
-            .from('users')
-            .insert([{ username, password: hashed }])
-            .select(); // return inserted row
+  try {
+    const hashed = bcrypt.hashSync(password, 8);
+    const { data, error } = await supabase
+      .from('users')
+      .insert([{ username, password: hashed }])
+      .select(); // return inserted row
 
-        if (error) return res.status(500).json({ error: error.message });
-        if (!data || data.length === 0) return res.status(500).json({ error: 'Insert failed' });
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data || data.length === 0) return res.status(500).json({ error: 'Insert failed' });
 
-        res.json({ message: 'User registered successfully', user: data[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
-    }
+    res.json({ message: 'User registered successfully', user: data[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Login
 app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
+  const { username, password } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ error: 'Missing username or password' });
 
-    try {
-        const { data: users, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', username)
-            .limit(1);
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .limit(1);
 
-        if (error) return res.status(500).json({ error: error.message });
-        if (!users || users.length === 0) return res.status(400).json({ error: 'User not found' });
+    if (error) return res.status(500).json({ error: error.message });
+    if (!users || users.length === 0) return res.status(400).json({ error: 'User not found' });
 
-        const user = users[0];
-        const valid = bcrypt.compareSync(password, user.password);
-        if (!valid) return res.status(401).json({ error: 'Invalid password' });
+    const user = users[0];
+    const valid = bcrypt.compareSync(password, user.password);
+    if (!valid) return res.status(401).json({ error: 'Invalid password' });
 
-        const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-        res.json({ message: 'Login success', token, user: { username: user.username } });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
-    }
+    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ message: 'Login success', token, user: { username: user.username } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Protected route
 app.get('/protected', (req, res) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'No token provided' });
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
 
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) return res.status(401).json({ error: 'Invalid token' });
-        res.json({ message: 'Welcome!', user: decoded });
-    });
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(401).json({ error: 'Invalid token' });
+    res.json({ message: 'Welcome!', user: decoded });
+  });
 });
 
 // ==========================
